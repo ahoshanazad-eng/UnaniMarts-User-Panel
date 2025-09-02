@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - UnaniMarts</title>
+    <!-- css/style.css ফাইলটি লিঙ্ক করা হচ্ছে -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <a href="index.html" class="logo">UnaniMarts</a>
+    </header>
+
+    <main class="form-wrapper">
+        <div class="form-container">
+            <h2>Welcome Back!</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+            <p>Don't have an account? <a href="signup.html">Sign Up</a></p>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+
+        // আপনার Firebase কনফিগারেশন কোড
+        const firebaseConfig = {
+          apiKey: "AIzaSyDuXlWUqFBcN2UNchyuaof90-hBBZMoJ4s",
+          authDomain: "unanimarts.firebaseapp.com",
+          projectId: "unanimarts",
+          storageBucket: "unanimarts.firebasestorage.app",
+          messagingSenderId: "830225179509",
+          appId: "1:830225179509:web:3a60172eed659ee78aa93c",
+          measurementId: "G-FVBH2X7G79"
+        };
+        
+        // Firebase ইনিশিয়ালাইজ করুন
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        const loginForm = document.getElementById('loginForm');
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!email || !password) {
+                alert("Please enter both email and password.");
+                return;
+            }
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    // Sign in successful
+                    alert('Login successful! Redirecting to homepage...');
+                    window.location.href = 'index.html'; // লগইন সফল হলে হোমপেজে পাঠিয়ে দিন
+                })
+                .catch((error) => {
+                    // Handle errors
+                    console.error("Login Error:", error);
+                    alert(`Login failed: ${error.message}`);
+                });
+        });
+    </script>
+</body>
+</html>
+

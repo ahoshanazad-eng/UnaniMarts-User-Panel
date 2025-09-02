@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UnaniMarts - Your Wellness Partner</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.min.js"></script>
+    <style>
+        /* অতিরিক্ত স্টাইলগুলো এখানেই যোগ করা হলো */
+        .page-section { display: none; }
+        .page-section.active { display: block; animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .checkout-form, .final-step, .thank-you, .ai-container, .profile-container { 
+            max-width: 800px; margin: 0 auto;
+        }
+        .profile-section, .checkout-form, .final-step, .thank-you { 
+            background-color: var(--secondary-dark); padding: 30px; 
+            border-radius: 8px; margin-bottom: 30px; 
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .profile-section h2, .checkout-form h2, .final-step h2, .thank-you h2, .ai-container h1 { 
+            margin-top: 0; border-bottom: 1px solid var(--border-dark); 
+            padding-bottom: 15px; margin-bottom: 25px; text-align: center;
+        }
+        .checkout-form input, .ai-container input { 
+            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 5px; 
+            border: 1px solid var(--border-dark); background: var(--bg-dark); 
+            color: var(--text-dark); box-sizing: border-box; font-size: 1em;
+        }
+        .checkout-form .btn, .final-step .btn, .ai-container .btn { width: 100%; margin-top: 10px; }
+        .final-step, .thank-you, .ai-container { text-align: center; }
+        .thank-you a { margin: 10px; display: inline-block; }
+        .btn-secondary { background-color: transparent; border: 1px solid var(--border-dark); color: var(--text-muted); }
+        .btn-secondary:hover { background-color: var(--border-dark); }
+        .cart-item .remove-btn { 
+            background: none; border: none; color: #e53e3e; cursor: pointer; font-size: 1.2em; padding: 5px;
+        }
+        .order-history-item { 
+            background-color: var(--secondary-dark); padding: 20px; 
+            border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-dark);
+        }
+        .cancel-btn { 
+            background-color: #c53030; color: white; padding: 8px 12px; 
+            border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; font-size: 0.9em; 
+        }
+        .cancel-btn:hover { background-color: #9b2c2c; }
+        .product-card { position: relative; }
+        .wishlist-btn {
+            position: absolute; top: 15px; right: 15px; background: rgba(30, 41, 59, 0.7);
+            border: none; border-radius: 50%; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s; backdrop-filter: blur(5px);
+        }
+        .wishlist-btn svg { width: 24px; height: 24px; stroke: white; fill: none; }
+        .wishlist-btn.active svg { fill: #e53e3e; stroke: #e53e3e; }
+        .wishlist-btn:hover { background: rgba(45, 55, 72, 0.9); transform: scale(1.1); }
+        .wishlist-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+        .product-clickable { cursor: pointer; }
+        .product-detail-container { display: flex; flex-wrap: wrap; gap: 40px; margin-top: 40px; background-color: var(--secondary-dark); padding: 30px; border-radius: 12px; }
+        .product-detail-image { flex: 1 1 350px; }
+        .product-detail-image img { width: 100%; border-radius: 8px; object-fit: cover; }
+        .product-detail-info { flex: 1 1 400px; }
+        .product-detail-info h1 { font-size: 2.5em; margin-top: 0; margin-bottom: 15px; }
+        .product-detail-info .category { background-color: var(--border-dark); color: var(--text-muted); padding: 5px 15px; border-radius: 20px; display: inline-block; margin-bottom: 20px; }
+        .product-detail-info .price { font-size: 2em; font-weight: 700; color: var(--primary); margin-bottom: 20px; }
+        .product-detail-info .description { line-height: 1.8; margin-bottom: 30px; }
+        .product-detail-actions { display: flex; gap: 15px; }
+        .back-button-container { margin-bottom: 20px; }
+        .back-btn { background: none; border: 1px solid var(--border-dark); color: var(--text-muted); padding: 8px 15px; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s; }
+        .back-btn:hover { background-color: var(--secondary-dark); color: var(--text-dark); }
+        /* AI Page specific styles */
+        #ai-form { display: flex; gap: 10px; margin-top: 30px; }
+        #ai-query-input { flex-grow: 1; padding: 15px; font-size: 1.1em; border-radius: 8px; border: 1px solid var(--border-dark); background: var(--bg-dark); color: var(--text-dark); }
+        #ai-submit-btn { padding: 0 30px; font-size: 1.1em; background: var(--primary); color: var(--bg-dark); border: none; border-radius: 8px; cursor: pointer; }
+        #ai-results-grid { margin-top: 50px; }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay"></div>
+
+    <header>
+        <div class="logo" id="logo-btn">UnaniMarts</div>
+        <div class="header-actions">
+            <button class="icon-btn" id="cart-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c.51 0 .962-.328 1.093-.828l2.558-9.086a.75.75 0 0 0-.732-.932H4.817M6 18.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
+            </button>
+            <button class="icon-btn" id="menu-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
+            </button>
+        </div>
+    </header>
+
+    <aside class="slide-panel left" id="menu-sidebar">
+        <div class="panel-header"><span>Menu</span><button class="icon-btn" id="close-menu-btn"><svg viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path d="M6 18 18 6M6 6l12 12" /></svg></button></div>
+        <div class="panel-body"><nav id="menu-nav-links"></nav></div>
+    </aside>
+    
+    <aside class="slide-panel right" id="cart-sidebar">
+        <div class="panel-header"><span>Your Cart</span><button class="icon-btn" id="close-cart-btn"><svg viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path d="M6 18 18 6M6 6l12 12" /></svg></button></div>
+        <div class="panel-body" id="cart-items-container"></div>
+        <div class="panel-footer" id="cart-footer"></div>
+    </aside>
+
+    <main class="container" id="main-content"><h2 style="text-align:center; padding: 50px;">Loading...</h2></main>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, query, orderBy, serverTimestamp, where, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyDuXlWUqFBcN2UNchyuaof90-hBBZMoJ4s", authDomain: "unanimarts.firebaseapp.com",
+          projectId: "unanimarts", storageBucket: "unanimarts.firebasestorage.app",
+          messagingSenderId: "830225179509", appId: "1:830225179509:web:3a60172eed659ee78aa93c",
+          measurementId: "G-FVBH2X7G79"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let allProducts = [];
+        let cart = JSON.parse(localStorage.getItem('unaniCart')) || [];
+        let userWishlist = [];
+        let fuse; // For fuzzy search
+
+        const mainContent = document.getElementById('main-content');
+        const overlay = document.getElementById('overlay');
+        const menuSidebar = document.getElementById('menu-sidebar');
+        const cartSidebar = document.getElementById('cart-sidebar');
+
+        // --- Panel Logic ---
+        function togglePanel(panel) {
+            const isActive = panel.classList.contains('active');
+            document.querySelectorAll('.slide-panel').forEach(p => p.classList.remove('active'));
+            if (!isActive) panel.classList.add('active');
+            overlay.classList.toggle('active', !isActive);
+        }
+
+        // --- Page Navigation & Rendering ---
+        function showPage(pageName, pageData = null) {
+            // Clear previous content and set up new section
+            mainContent.innerHTML = '';
+            let pageElement = document.createElement('section');
+            pageElement.id = pageName;
+            pageElement.className = 'page-section active'; // Added active here to trigger animation
+            mainContent.appendChild(pageElement);
+            pageElement.innerHTML = `<h2 style="text-align:center; padding: 50px;">Loading ${pageName.replace('-page', '')}...</h2>`;
+
+            switch (pageName) {
+                case 'home-page': renderHomePage(); break;
+                case 'product-detail': renderProductDetailPage(pageData); break;
+                case 'profile-page': renderProfilePage(); break;
+                case 'ai-recommendation': renderAiPage(); break;
+                case 'order-history': renderOrderHistoryPage(); break;
+                case 'wishlist-page': renderWishlistPage(); break;
+                case 'checkout-page': renderCheckoutPage(); break;
+                default: pageElement.innerHTML = `<h2 style="text-align:center; padding: 50px;">Page Not Found.</h2>`; break;
+            }
+            // Close any open panels
+            menuSidebar.classList.remove('active');
+            cartSidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        function renderHomePage() {
+            const page = document.getElementById('home-page');
+            let productsHTML = '';
+            if (allProducts.length === 0) {
+                productsHTML = `<p style="text-align:center;">No products available at the moment.</p>`;
+            } else {
+                allProducts.forEach(p => {
+                    const isInWishlist = userWishlist.includes(p.id);
+                    productsHTML += `
+                        <div class="product-card">
+                            <button class="wishlist-btn ${isInWishlist ? 'active' : ''}" data-id="${p.id}"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /></svg></button>
+                            <div class="product-clickable" data-id="${p.id}">
+                                <img src="${p.imageUrl}" alt="${p.name}">
+                                <div class="product-info"><h3>${p.name}</h3></div>
+                            </div>
+                            <div class="product-info">
+                                <p class="price">৳${p.price}</p>
+                                <div class="product-actions">
+                                    <button class="btn-cart" data-id="${p.id}">Add to Cart</button>
+                                    <button class="btn-buy" data-id="${p.id}">Buy Now</button>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            }
+            page.innerHTML = `<div class="motivational-quote"><h2>Health is the greatest wealth.</h2><p>- Virgil</p></div><div class="product-grid">${productsHTML}</div>`;
+            attachProductActionListeners();
+        }
+
+        async function renderProductDetailPage(productId) {
+            const page = document.getElementById('product-detail');
+            if (!productId) { page.innerHTML = `<h2>Product not found.</h2>`; return; }
+            try {
+                const docRef = doc(db, "products", productId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const product = docSnap.data();
+                    const isInWishlist = userWishlist.includes(productId);
+                    page.innerHTML = `
+                        <div class="back-button-container"><button class="back-btn" id="back-to-home"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0l7 7-7-7 7-7"/></svg>Back to Products</button></div>
+                        <div class="product-detail-container">
+                            <div class="product-detail-image"><img src="${product.imageUrl}" alt="${product.name}"></div>
+                            <div class="product-detail-info">
+                                <span class="category">${product.category}</span><h1>${product.name}</h1>
+                                <p class="price">৳${product.price}</p><p class="description">${product.description}</p>
+                                <div class="product-actions">
+                                    <button class="btn-cart" data-id="${productId}">Add to Cart</button>
+                                    <button class="btn-buy" data-id="${productId}">Buy Now</button>
+                                    <button class="wishlist-btn ${isInWishlist ? 'active' : ''}" data-id="${productId}" style="position: static;"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /></svg></button>
+                                </div>
+                            </div>
+                        </div>`;
+                    document.getElementById('back-to-home').addEventListener('click', () => showPage('home-page'));
+                    attachProductActionListeners(); // Re-attach listeners for new elements
+                } else { page.innerHTML = `<h2>Sorry, this product does not exist.</h2>`; }
+            } catch (error) { console.error("Error fetching product details:", error); page.innerHTML = `<h2>Could not load product details.</h2>`; }
+        }
+
+        async function renderProfilePage() {
+            const page = document.getElementById('profile-page');
+            const user = auth.currentUser;
+            if (!user) { page.innerHTML = `<h2>Please log in to view your profile.</h2>`; return; }
+            
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            const userData = userDocSnap.exists() ? userDocSnap.data() : {};
+
+            page.innerHTML = `
+                <div class="profile-container">
+                    <div class="profile-section">
+                        <h2>Update Information</h2>
+                        <form id="profile-form">
+                            <div class="form-group"><label>Full Name</label><input type="text" id="profile-name" value="${userData.name || ''}" placeholder="Enter your full name"></div>
+                            <div class="form-group"><label>Shipping Address</label><input type="text" id="profile-address" value="${userData.address || ''}" placeholder="Enter your shipping address"></div>
+                            <button type="submit" class="btn">Save Changes</button>
+                        </form>
+                    </div>
+                    <div class="profile-section">
+                        <h2>Change Password</h2>
+                        <form id="password-form">
+                            <div class="form-group"><label>New Password</label><input type="password" id="profile-password" required minlength="6" placeholder="Minimum 6 characters"></div>
+                            <button type="submit" class="btn">Update Password</button>
+                        </form>
+                    </div>
+                </div>`;
+            
+            document.getElementById('profile-form').addEventListener('submit', handleProfileUpdate);
+            document.getElementById('password-form').addEventListener('submit', handlePasswordUpdate);
+        }
+
+        async function handleProfileUpdate(e) {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return;
+            const name = document.getElementById('profile-name').value;
+            const address = document.getElementById('profile-address').value;
+            try {
+                await setDoc(doc(db, "users", user.uid), { name, address }, { merge: true });
+                alert("Profile updated successfully!");
+            } catch (error) { console.error("Error updating profile:", error); alert("Failed to update profile."); }
+        }
+
+        async function handlePasswordUpdate(e) {
+            e.preventDefault();
+            const user = auth.currentUser;
+            const newPassword = document.getElementById('profile-password').value;
+            if (!user) return;
+            try {
+                await updatePassword(user, newPassword);
+                alert("Password updated successfully! Please log in again with your new password.");
+                signOut(auth);
+            } catch (error) { console.error("Error updating password:", error); alert("Failed to update password. You may need to log in again to perform this action."); }
+        }
+        
+        function renderAiPage() {
+            const page = document.getElementById('ai-recommendation');
+            page.innerHTML = `<div class="ai-container"><h1>AI Recommendation</h1><p>This feature is coming soon!</p></div>`;
+        }
+
+        async function renderOrderHistoryPage() {
+            const page = document.getElementById('order-history');
+            const user = auth.currentUser;
+            if (!user) { page.innerHTML = `<h2>Please log in to view your order history.</h2>`; return; }
+            try {
+                const q = query(collection(db, "orders"), where("userId", "==", user.uid), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) { page.innerHTML = `<h2>You have no past orders.</h2>`; return; }
+                let ordersHTML = '<h1>Your Order History</h1>';
+                querySnapshot.forEach(doc => {
+                    const order = doc.data();
+                    const orderId = doc.id;
+                    const orderDate = new Date(order.createdAt.seconds * 1000).toLocaleString();
+                    const cancelButtonHTML = order.status === 'Pending' ? `<button class="cancel-btn" data-id="${orderId}">Cancel Order</button>` : '';
+                    ordersHTML += `<div class="order-history-item"><p><strong>Order Date:</strong> ${orderDate}</p><p><strong>Total:</strong> ৳${order.totalAmount.toFixed(2)}</p><p><strong>Status:</strong> ${order.status}</p><p><strong>Items:</strong> ${order.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</p>${cancelButtonHTML}</div>`;
+                });
+                page.innerHTML = ordersHTML;
+                document.querySelectorAll('.cancel-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        if (confirm("Are you sure you want to cancel this order?")) await cancelOrder(e.target.dataset.id);
+                    });
+                });
+            } catch (error) { console.error("Error fetching orders:", error); page.innerHTML = `<h2>Could not load order history.</h2>`; }
+        }
+
+        async function cancelOrder(orderId) {
+            try {
+                await updateDoc(doc(db, "orders", orderId), { status: "Cancelled" });
+                alert("Order cancelled successfully.");
+                renderOrderHistoryPage();
+            } catch (error) { console.error("Error cancelling order:", error); alert("Failed to cancel the order."); }
+        }
+
+        async function renderWishlistPage() {
+            const page = document.getElementById('wishlist-page');
+            if (!auth.currentUser) { page.innerHTML = `<h2>Please log in to see your wishlist.</h2>`; return; }
+            page.innerHTML = '<h1>Your Wishlist</h1>';
+            const wishlistProducts = allProducts.filter(p => userWishlist.includes(p.id));
+            if (wishlistProducts.length === 0) { page.innerHTML += `<p>Your wishlist is empty. Add products by clicking the heart icon!</p>`; return; }
+            
+            let productsHTML = '';
+            wishlistProducts.forEach(p => {
+                 const isInWishlist = userWishlist.includes(p.id);
+                 productsHTML += `
+                    <div class="product-card">
+                        <button class="wishlist-btn ${isInWishlist ? 'active' : ''}" data-id="${p.id}"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /></svg></button>
+                        <div class="product-clickable" data-id="${p.id}">
+                            <img src="${p.imageUrl}" alt="${p.name}">
+                            <div class="product-info"><h3>${p.name}</h3></div>
+                        </div>
+                        <div class="product-info">
+                            <p class="price">৳${p.price}</p>
+                            <div class="product-actions">
+                                <button class="btn-cart" data-id="${p.id}">Add to Cart</button>
+                                <button class="btn-buy" data-id="${p.id}">Buy Now</button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            page.innerHTML += `<div class="product-grid">${productsHTML}</div>`;
+            attachProductActionListeners();
+        }
+
+        function renderCheckoutPage() {
+            const page = document.getElementById('checkout-page');
+            if (cart.length === 0) { alert("Your cart is empty."); showPage('home-page'); return; }
+            const user = auth.currentUser;
+            page.innerHTML = `<div class="checkout-form"><h2>Shipping Information</h2><form id="shippingForm"><input type="text" id="name" placeholder="Full Name" required><input type="email" id="email" placeholder="Email" value="${user ? user.email : ''}" required><input type="tel" id="phone" placeholder="Phone Number" required><input type="text" id="address" placeholder="Address" required><input type="text" id="city" placeholder="City" required><button type="submit" class="btn">Proceed to Payment</button></form></div>`;
+            document.getElementById('shippingForm').addEventListener('submit', handleOrderPlacement);
+        }
+
+        function handleOrderPlacement(e) {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) { alert("Please log in to place an order."); window.location.href = 'login.html'; return; }
+            const orderDetails = {
+                name: document.getElementById('name').value, email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value, address: document.getElementById('address').value,
+                city: document.getElementById('city').value, items: cart,
+                totalAmount: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+                status: "Pending", createdAt: serverTimestamp(), userId: user.uid
+            };
+            mainContent.innerHTML = `<div class="final-step"><h2>Confirm Your Order</h2><p>Please review and confirm.</p><button id="confirmOrderBtn" class="btn">Confirm Order</button><button id="backToHomeBtn" class="btn btn-secondary">Go Back</button></div>`;
+            document.getElementById('confirmOrderBtn').addEventListener('click', async () => {
+                try {
+                    await addDoc(collection(db, "orders"), orderDetails);
+                    cart = []; updateCart();
+                    mainContent.innerHTML = `<div class="thank-you"><h2>Thank You!</h2><p>Your order has been placed successfully.</p><p>To complete payment, contact us:</p><a href="tel:01953383781" class="btn">Call Us</a><a href="https://wa.me/8801953383781" class="btn" target="_blank">WhatsApp</a></div>`;
+                } catch (error) { console.error("Error placing order:", error); alert("Error placing order."); }
+            });
+            document.getElementById('backToHomeBtn').addEventListener('click', () => showPage('home-page'));
+        }
+
+        function updateNavLinks(user) {
+            const navContainer = document.getElementById('menu-nav-links');
+            let links = `<a href="#" data-page="home-page">Home</a><a href="#" data-page="ai-recommendation">AI Recommendation</a>`;
+            if (user) { links += `<a href="#" data-page="profile-page">My Profile</a><a href="#" data-page="wishlist-page">Wishlist</a><a href="#" data-page="order-history">Order History</a><a href="#" id="logout-btn">Logout</a>`; } 
+            else { links += `<a href="login.html">Login</a><a href="signup.html">Sign Up</a>`; }
+            navContainer.innerHTML = links;
+            navContainer.querySelectorAll('a[data-page]').forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); showPage(link.dataset.page); }); });
+            if (user) { document.getElementById('logout-btn').addEventListener('click', () => signOut(auth)); }
+        }
+
+        function renderCartItems() {
+            const cartItemsContainer = document.getElementById('cart-items-container');
+            const cartFooter = document.getElementById('cart-footer');
+            if (cart.length === 0) {
+                cartItemsContainer.innerHTML = `<div class="empty-cart"><h3>Your cart is empty</h3><button id="find-products-btn" class="btn">Find Products</button></div>`;
+                cartFooter.innerHTML = '';
+                if(document.getElementById('find-products-btn')) document.getElementById('find-products-btn').addEventListener('click', () => showPage('home-page'));
+                return;
+            }
+            cartItemsContainer.innerHTML = '';
+            let total = 0;
+            cart.forEach(item => {
+                cartItemsContainer.innerHTML += `<div class="cart-item"><img src="${item.imageUrl}"><div class="cart-item-info"><h4>${item.name}</h4><p>৳${item.price}</p><div class="cart-item-actions"><button class="quantity-btn" data-id="${item.id}" data-change="-1">-</button><span>${item.quantity}</span><button class="quantity-btn" data-id="${item.id}" data-change="1">+</button></div></div><button class="icon-btn remove-btn" data-id="${item.id}"><svg viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path d="M6 18 18 6M6 6l12 12" /></svg></button></div>`;
+                total += item.price * item.quantity;
+            });
+            cartFooter.innerHTML = `<h3>Total: ৳${total.toFixed(2)}</h3><button id="checkoutBtn" class="btn" style="width:100%;">Checkout</button>`;
+            document.querySelectorAll('.quantity-btn').forEach(btn => btn.addEventListener('click', e => changeQuantity(e.currentTarget.dataset.id, parseInt(e.currentTarget.dataset.change))));
+            document.querySelectorAll('.remove-btn').forEach(btn => btn.addEventListener('click', e => removeFromCart(e.currentTarget.dataset.id)));
+            document.getElementById('checkoutBtn').addEventListener('click', () => showPage('checkout-page'));
+        }
+
+        function changeQuantity(productId, change) {
+            const cartItem = cart.find(item => item.id === productId);
+            if (!cartItem) return;
+            cartItem.quantity += change;
+            if (cartItem.quantity <= 0) cart = cart.filter(item => item.id !== productId);
+            updateCart();
+        }
+
+        function removeFromCart(productId) { cart = cart.filter(item => item.id !== productId); updateCart(); }
+        function addToCart(productId) {
+            const product = allProducts.find(p => p.id === productId);
+            if (!product) return;
+            const cartItem = cart.find(item => item.id === productId);
+            if (cartItem) cartItem.quantity++;
+            else cart.push({ ...product, quantity: 1 });
+            updateCart();
+        }
+        function updateCart() { localStorage.setItem('unaniCart', JSON.stringify(cart)); renderCartItems(); }
+
+        function attachProductActionListeners() {
+            document.querySelectorAll('.product-clickable').forEach(el => {
+                el.addEventListener('click', e => showPage('product-detail', e.currentTarget.closest('.product-card').dataset.id));
+            });
+            document.querySelectorAll('.btn-cart, .btn-buy').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    addToCart(e.target.dataset.id);
+                    if (e.target.classList.contains('btn-buy')) { togglePanel(cartSidebar); } 
+                    else { alert(`${allProducts.find(p=>p.id === e.target.dataset.id).name} has been added to cart!`); }
+                });
+            });
+            document.querySelectorAll('.wishlist-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!auth.currentUser) { alert("Please log in to use wishlist."); window.location.href = 'login.html'; return; }
+                    toggleWishlistItem(e.currentTarget.dataset.id, e.currentTarget);
+                });
+            });
+        }
+        
+        async function toggleWishlistItem(productId, button) {
+            const user = auth.currentUser;
+            const wishlistItemRef = doc(db, `users/${user.uid}/wishlist`, productId);
+            button.disabled = true;
+            try {
+                if (button.classList.contains('active')) {
+                    await deleteDoc(wishlistItemRef);
+                    userWishlist = userWishlist.filter(id => id !== productId);
+                } else {
+                    await setDoc(wishlistItemRef, { productId, addedAt: serverTimestamp() });
+                    userWishlist.push(productId);
+                }
+                button.classList.toggle('active');
+            } catch(error) { console.error("Error:", error); alert("Could not update wishlist."); }
+            finally { button.disabled = false; }
+        }
+
+        async function loadUserWishlist(user) {
+            if (!user) { userWishlist = []; return; }
+            try {
+                const snapshot = await getDocs(collection(db, `users/${user.uid}/wishlist`));
+                userWishlist = snapshot.docs.map(doc => doc.id);
+            } catch (error) { console.error("Error loading wishlist:", error); userWishlist = []; }
+        }
+        
+        async function fetchAndSetupProducts() {
+            try {
+                const q = query(collection(db, 'products'), orderBy('name'));
+                const snapshot = await getDocs(q);
+                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Initialize Fuse.js for AI Recommendation
+                const options = { keys: [{ name: 'name', weight: 0.4 }, { name: 'benefits', weight: 0.3 }, { name: 'ingredients', weight: 0.2 }, { name: 'description', weight: 0.1 }], includeScore: true, threshold: 0.4 };
+                fuse = new Fuse(allProducts, options);
+            } catch (error) { console.error("Firebase Error:", error); mainContent.innerHTML = `<p style="text-align:center;">Could not load products.</p>`; }
+        }
+        
+        async function initializeAppLogic() {
+            mainContent.innerHTML = `<section id="home-page" class="page-section"></section>`; // Initial content for home page
+            
+            // Listen for auth state changes
+            onAuthStateChanged(auth, async (user) => {
+                await loadUserWishlist(user); // Load wishlist based on user
+                updateNavLinks(user); // Update menu based on user login
+                
+                // Fetch products only once and only after auth state is known
+                if (allProducts.length === 0) {
+                    await fetchAndSetupProducts();
+                }
+                
+                showPage('home-page'); // Show home page after all data is ready
+            });
+            renderCartItems(); // Render cart initially
+        }
+        
+        // --- Event Listeners for Header & Overlay ---
+        document.getElementById('logo-btn').addEventListener('click', () => showPage('home-page'));
+        document.getElementById('menu-btn').addEventListener('click', () => togglePanel(menuSidebar));
+        document.getElementById('cart-btn').addEventListener('click', () => togglePanel(cartSidebar));
+        document.getElementById('close-menu-btn').addEventListener('click', () => togglePanel(menuSidebar));
+        document.getElementById('close-cart-btn').addEventListener('click', () => togglePanel(cartSidebar));
+        overlay.addEventListener('click', () => { 
+            menuSidebar.classList.remove('active'); 
+            cartSidebar.classList.remove('active'); 
+            overlay.classList.remove('active'); 
+        });
+
+        // Initialize the app
+        initializeAppLogic();
+    </script>
+</body>
+</html>
+
