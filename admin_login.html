@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Login</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f2f5; font-family: sans-serif; }
+        .login-card { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 350px; }
+        h2 { text-align: center; color: #1e293b; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 12px; background-color: #4f46e5; color: white; border: none; border-radius: 4px; font-size: 1em; cursor: pointer; }
+        button:hover { background-color: #4338ca; }
+        #error-message { color: red; text-align: center; margin-top: 10px; min-height: 1.2em; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>UnaniMarts Admin Login</h2>
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit">Login</button>
+            <p id="error-message"></p>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        
+        // আপনার Firebase কনফিগারেশন এখানে পেস্ট করুন
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuXlWUqFBcN2UNchyuaof90-hBBZMoJ4s",
+            authDomain: "unanimarts.firebaseapp.com",
+            projectId: "unanimarts",
+            storageBucket: "unanimarts.firebasestorage.app",
+            messagingSenderId: "830225179509",
+            appId: "1:830225179509:web:3a60172eed659ee78aa93c",
+            measurementId: "G-FVBH2X7G79"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        const loginForm = document.getElementById('loginForm');
+        const errorMessage = document.getElementById('error-message');
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            errorMessage.textContent = ''; // পুরনো error মুছে দিন
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    // সফলভাবে লগইন হলে, অ্যাডমিন প্যানেলে পাঠিয়ে দিন
+                    console.log("Login Successful!", userCredential.user);
+                    window.location.href = 'admin.html';
+                })
+                .catch((error) => {
+                    // Firebase থেকে আসা error কোড অনুযায়ী বার্তা দেখান
+                    switch (error.code) {
+                        case 'auth/invalid-credential':
+                            errorMessage.textContent = 'Incorrect email or password.';
+                            break;
+                        case 'auth/user-not-found':
+                            errorMessage.textContent = 'No user found with this email.';
+                            break;
+                        default:
+                            errorMessage.textContent = 'An error occurred. Please try again.';
+                            break;
+                    }
+                    console.error("Login Error Details:", error);
+                });
+        });
+    </script>
+</body>
+</html>

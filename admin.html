@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UnaniMarts - Admin Panel</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f0f2f5; display: flex; height: 100vh; overflow: hidden; }
+        .sidebar { width: 240px; background-color: #1e293b; color: white; display: flex; flex-direction: column; height: 100%; }
+        .sidebar-header { padding: 20px; font-size: 1.5em; font-weight: bold; text-align: center; background-color: #334155; }
+        .sidebar nav { flex-grow: 1; overflow-y: auto; }
+        .sidebar ul { list-style-type: none; padding: 10px 0; margin: 0; }
+        .sidebar ul li a { display: flex; align-items: center; gap: 10px; padding: 15px 20px; color: #cbd5e1; text-decoration: none; border-radius: 5px; margin: 5px 10px; transition: background-color 0.2s, color 0.2s; }
+        .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #4f46e5; color: white; }
+        .main-content { flex-grow: 1; padding: 25px; overflow-y: auto; }
+        .main-content h1 { color: #1e293b; margin-top: 0; }
+        .page { display: none; } .page.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .card { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h3 { margin: 0 0 10px 0; color: #475569; }
+        .card .value { font-size: 2em; font-weight: bold; color: #1e293b; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle;}
+        th { background-color: #f8fafc; font-weight: 600; }
+        tbody tr:hover { background-color: #f1f5f9; }
+        .btn { padding: 8px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background-color 0.2s; }
+        .btn:disabled { background-color: #999; cursor: not-allowed; }
+        .btn-primary { background-color: #4f46e5; color: white; } .btn-primary:hover:not(:disabled) { background-color: #4338ca; }
+        .btn-danger { background-color: #dc2626; color: white; } .btn-danger:hover { background-color: #b91c1c; }
+        .btn-edit { background-color: #f59e0b; color: white; } .btn-edit:hover { background-color: #d97706; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: #fefefe; margin: 8% auto; padding: 30px; border-radius: 8px; border: 1px solid #888; width: 80%; max-width: 700px; }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; background-color: #fff; }
+        
+        /* রিসিপ্টের জন্য নতুন স্টাইল */
+        .receipt-details { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; color: #333; }
+        .receipt-details div { padding: 10px; background-color: #f8fafc; border-radius: 5px; }
+        .receipt-details strong { display: block; color: #475569; margin-bottom: 5px; }
+        .receipt-items h3 { color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 10px; }
+        .receipt-items table { width: 100%; border-collapse: collapse; color: #333; }
+        .receipt-items th, .receipt-items td { padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        .receipt-total { color: #1e293b; text-align: right; font-size: 1.2em; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">UnaniMarts</div>
+        <nav>
+            <ul id="main-nav">
+                <li><a href="#" data-page="dashboard" class="nav-link active">📊 Dashboard</a></li>
+                <li><a href="#" data-page="products" class="nav-link">📦 Products</a></li>
+                <li><a href="#" data-page="categories" class="nav-link">📁 Categories</a></li>
+                <li><a href="#" data-page="orders" class="nav-link">🛒 Orders</a></li>
+                <li><a href="#" data-page="messages" class="nav-link">✉️ Messages</a></li>
+                <li><a href="#" data-page="users" class="nav-link">👥 Users</a></li>
+                <li><a href="#" data-page="analytics" class="nav-link">📈 Analytics</a></li>
+                <li><a href="#" id="logoutBtn">🚪 Logout</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content"><p>Authenticating...</p></main>
+
+    <div id="productModal" class="modal"></div>
+    <div id="categoryModal" class="modal"></div>
+    <div id="receiptModal" class="modal"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, addDoc, doc, getDoc, setDoc, deleteDoc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, where } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyDuXlWUqFBcN2UNchyuaof90-hBBZMoJ4s", authDomain: "unanimarts.firebaseapp.com",
+          projectId: "unanimarts", storageBucket: "unanimarts.firebasestorage.app",
+          messagingSenderId: "830225179509", appId: "1:830225179509:web:3a60172eed659ee78aa93c",
+          measurementId: "G-FVBH2X7G79"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        onAuthStateChanged(auth, (user) => user ? initializeAdminPanel() : window.location.href = 'admin_login.html');
+        
+        function initializeAdminPanel() {
+            document.querySelector('.main-content').innerHTML = `
+                <h1 id="page-title"></h1> <div id="dashboard-page" class="page"></div> <div id="products-page" class="page"></div>
+                <div id="categories-page" class="page"></div> <div id="orders-page" class="page"></div> <div id="messages-page" class="page"></div>
+                <div id="users-page" class="page"></div> <div id="analytics-page" class="page"></div>`;
+            
+            attachEventListenersAndLogic();
+            showPage('dashboard');
+        }
+
+        function attachEventListenersAndLogic() {
+            document.getElementById('main-nav').addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetLink = e.target.closest('a');
+                if (targetLink && targetLink.dataset.page) showPage(targetLink.dataset.page);
+            });
+            document.getElementById('logoutBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                signOut(auth).catch(error => console.error('Logout error', error));
+            });
+        }
+        
+        function showPage(pageId) {
+            if (!pageId) return;
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`${pageId}-page`).classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelector(`[data-page="${pageId}"]`).classList.add('active');
+            document.getElementById('page-title').textContent = pageId.charAt(0).toUpperCase() + pageId.slice(1);
+            
+            const pageLoaders = {
+                dashboard: loadDashboardPage, products: loadProductsPage, categories: loadCategoriesPage,
+                orders: loadOrdersPage, messages: loadMessagesPage, users: loadUsersPage, analytics: loadAnalyticsPage
+            };
+            if(pageLoaders[pageId]) pageLoaders[pageId]();
+        }
+
+        // --- Dashboard ---
+        function loadDashboardPage() {
+            document.getElementById('dashboard-page').innerHTML = `<div class="stat-cards">
+                <div class="card"><h3>Total Revenue</h3><p class="value" id="total-revenue">৳0</p></div><div class="card"><h3>Total Sales</h3><p class="value" id="total-sales">0</p></div>
+                <div class="card"><h3>Pending Orders</h3><p class="value" id="pending-orders">0</p></div><div class="card"><h3>Total Products</h3><p class="value" id="total-products">0</p></div></div>`;
+            loadDashboardStats();
+        }
+        async function loadDashboardStats() {
+            const productsSnapshot = await getDocs(collection(db, 'products'));
+            const ordersSnapshot = await getDocs(collection(db, 'orders'));
+            let totalRevenue = 0, pendingOrders = 0;
+            ordersSnapshot.forEach(doc => {
+                const order = doc.data();
+                if (order.status === 'Fulfilled') totalRevenue += order.totalAmount;
+                if (order.status === 'Pending') pendingOrders++;
+            });
+            document.getElementById('total-revenue').textContent = `৳${totalRevenue.toFixed(2)}`;
+            document.getElementById('total-sales').textContent = ordersSnapshot.size;
+            document.getElementById('pending-orders').textContent = pendingOrders;
+            document.getElementById('total-products').textContent = productsSnapshot.size;
+        }
+
+        // --- Products ---
+        function loadProductsPage() {
+            document.getElementById('products-page').innerHTML = `<button class="btn btn-primary" id="addProductBtn">Add New Product</button><div class="table-container"><table id="products-table"><thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
+            document.getElementById('addProductBtn').onclick = () => openProductModal();
+            document.querySelector('#products-table tbody').addEventListener('click', handleProductActions);
+            loadProducts();
+        }
+        async function loadProducts() {
+            const tableBody = document.querySelector('#products-table tbody');
+            const snapshot = await getDocs(query(collection(db, 'products'), orderBy('name')));
+            tableBody.innerHTML = '';
+            snapshot.forEach(doc => {
+                const p = doc.data();
+                tableBody.innerHTML += `<tr><td><img src="${p.imageUrl}" width="50" style="border-radius:4px;"></td><td>${p.name}</td><td>${p.category}</td><td>৳${p.price}</td><td><button class="btn btn-edit" data-id="${doc.id}">Edit</button> <button class="btn btn-danger" data-id="${doc.id}">Delete</button></td></tr>`;
+            });
+        }
+        async function openProductModal(id = '') {
+            let p = { name: '', price: '', category: '', imageUrl: '', description: '' };
+            if (id) { const docSnap = await getDoc(doc(db, 'products', id)); if (docSnap.exists()) p = docSnap.data(); }
+            document.getElementById('productModal').innerHTML = `<div class="modal-content"><span class="close-btn">&times;</span><h2>${id ? 'Edit' : 'Add'} Product</h2><form id="productForm"><input type="hidden" id="productId" value="${id}"><div class="form-group"><label>Name</label><input type="text" id="productName" value="${p.name}" required></div><div class="form-group"><label>Price</label><input type="number" id="productPrice" value="${p.price}" required></div><div class="form-group"><label>Category</label><select id="productCategory" required></select></div><div class="form-group"><label>Image URL</label><input type="url" id="productImage" value="${p.imageUrl}" required></div><div class="form-group"><label>Description</label><textarea id="productDescription" rows="4" required>${p.description}</textarea></div><button type="submit" class="btn btn-primary">Save Product</button></form></div>`;
+            await populateCategoryDropdown(p.category);
+            document.getElementById('productModal').style.display = 'block';
+            document.querySelector('#productModal .close-btn').onclick = () => document.getElementById('productModal').style.display = 'none';
+            document.getElementById('productForm').onsubmit = saveProduct;
+        }
+        async function saveProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('productId').value;
+            const data = {
+                name: document.getElementById('productName').value, price: parseFloat(document.getElementById('productPrice').value),
+                category: document.getElementById('productCategory').value, imageUrl: document.getElementById('productImage').value,
+                description: document.getElementById('productDescription').value,
+            };
+            try {
+                if (id) { await setDoc(doc(db, 'products', id), data, { merge: true }); }
+                else { data.createdAt = serverTimestamp(); await addDoc(collection(db, 'products'), data); }
+                document.getElementById('productModal').style.display = 'none'; loadProducts();
+            } catch (error) { console.error("Error saving product: ", error); }
+        }
+        function handleProductActions(e) {
+            const id = e.target.dataset.id; if (!id) return;
+            if (e.target.classList.contains('btn-edit')) openProductModal(id);
+            else if (e.target.classList.contains('btn-danger') && confirm('Are you sure?')) deleteDoc(doc(db, 'products', id)).then(loadProducts);
+        }
+        
+        // --- Categories ---
+        function loadCategoriesPage() {
+            document.getElementById('categories-page').innerHTML = `<button class="btn btn-primary" id="addCategoryBtn">Add New Category</button><div class="table-container"><table id="categories-table"><thead><tr><th>Category Name</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
+            document.getElementById('addCategoryBtn').onclick = () => openCategoryModal();
+            document.querySelector('#categories-table tbody').addEventListener('click', handleCategoryActions);
+            loadCategories();
+        }
+        async function loadCategories() {
+            const tableBody = document.querySelector('#categories-table tbody');
+            const snapshot = await getDocs(query(collection(db, 'categories'), orderBy('name')));
+            tableBody.innerHTML = '';
+            snapshot.forEach(doc => {
+                const c = doc.data();
+                tableBody.innerHTML += `<tr><td>${c.name}</td><td><button class="btn btn-edit" data-id="${doc.id}" data-name="${c.name}">Edit</button> <button class="btn btn-danger" data-id="${doc.id}">Delete</button></td></tr>`;
+            });
+        }
+        function openCategoryModal(id = '', name = '') {
+            document.getElementById('categoryModal').innerHTML = `<div class="modal-content"><span class="close-btn">&times;</span><h2>${id ? 'Edit' : 'Add'} Category</h2><form id="categoryForm"><input type="hidden" id="categoryId" value="${id}"><div class="form-group"><label>Name</label><input type="text" id="categoryName" value="${name}" required></div><button type="submit" class="btn btn-primary">Save</button></form></div>`;
+            document.getElementById('categoryModal').style.display = 'block';
+            document.querySelector('#categoryModal .close-btn').onclick = () => document.getElementById('categoryModal').style.display = 'none';
+            document.getElementById('categoryForm').onsubmit = saveCategory;
+        }
+        async function saveCategory(e) {
+            e.preventDefault();
+            const id = document.getElementById('categoryId').value;
+            const name = document.getElementById('categoryName').value;
+            if (id) { await setDoc(doc(db, 'categories', id), { name }); }
+            else { await addDoc(collection(db, 'categories'), { name, createdAt: serverTimestamp() }); }
+            document.getElementById('categoryModal').style.display = 'none'; loadCategories();
+        }
+        function handleCategoryActions(e) {
+            const id = e.target.dataset.id; if (!id) return;
+            if (e.target.classList.contains('btn-edit')) openCategoryModal(id, e.target.dataset.name);
+            else if (e.target.classList.contains('btn-danger') && confirm('Are you sure?')) deleteDoc(doc(db, 'categories', id)).then(loadCategories);
+        }
+        async function populateCategoryDropdown(selected = '') {
+            const select = document.getElementById('productCategory');
+            select.innerHTML = '<option value="">Select a category</option>';
+            const snapshot = await getDocs(query(collection(db, 'categories'), orderBy('name')));
+            snapshot.forEach(doc => {
+                const name = doc.data().name;
+                select.innerHTML += `<option value="${name}" ${name === selected ? 'selected' : ''}>${name}</option>`;
+            });
+        }
+        
+        // --- Orders ---
+        function loadOrdersPage() {
+            document.getElementById('orders-page').innerHTML = `<div class="table-container"><table id="orders-table"><thead><tr><th>Order Time</th><th>Customer Name</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>`;
+            listenForOrders();
+        }
+        let allOrdersData = [];
+        let unsubscribeOrders;
+        function listenForOrders() {
+            const tableBody = document.querySelector('#orders-table tbody');
+            if (unsubscribeOrders) unsubscribeOrders();
+            const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+            unsubscribeOrders = onSnapshot(q, (snapshot) => {
+                allOrdersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                tableBody.innerHTML = '';
+                allOrdersData.forEach(order => {
+                    tableBody.innerHTML += `<tr><td>${order.createdAt ? new Date(order.createdAt.seconds * 1000).toLocaleString() : ''}</td><td>${order.name}</td><td>৳${order.totalAmount}</td><td><select class="order-status" data-id="${order.id}"><option value="Pending" ${order.status==='Pending'?'selected':''}>Pending</option><option value="Fulfilled" ${order.status==='Fulfilled'?'selected':''}>Fulfilled</option><option value="Cancelled" ${order.status==='Cancelled'?'selected':''}>Cancelled</option></select></td><td><button class="btn btn-edit view-receipt-btn" data-id="${order.id}">View Receipt</button></td></tr>`;
+                });
+                
+                document.querySelectorAll('.order-status').forEach(sel => sel.onchange = e => updateDoc(doc(db, 'orders', e.target.dataset.id), { status: e.target.value }));
+                document.querySelectorAll('.view-receipt-btn').forEach(btn => btn.onclick = e => showReceipt(e.target.dataset.id));
+            });
+        }
+        function showReceipt(orderId) {
+            const order = allOrdersData.find(o => o.id === orderId);
+            if (!order) return;
+            
+            let itemsHTML = order.items.map(item => `<tr><td>${item.name}</td><td>${item.quantity}</td><td>৳${item.price}</td><td>৳${item.price * item.quantity}</td></tr>`).join('');
+            
+            const receiptModal = document.getElementById('receiptModal');
+            receiptModal.innerHTML = `<div class="modal-content"><span class="close-btn">&times;</span><h2>Order Receipt</h2><div class="receipt-details"><div><strong>Name:</strong> ${order.name}</div><div><strong>Email:</strong> ${order.email}</div><div><strong>Phone:</strong> ${order.phone}</div><div><strong>Address:</strong> ${order.address}, ${order.city}</div></div><div class="receipt-items"><h3>Ordered Items</h3><table><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead><tbody>${itemsHTML}</tbody></table></div><div class="receipt-total">Total: ৳${order.totalAmount.toFixed(2)}</div></div>`;
+            
+            receiptModal.style.display = 'block';
+            receiptModal.querySelector('.close-btn').onclick = () => receiptModal.style.display = 'none';
+        }
+        
+        // --- Messages ---
+        function loadMessagesPage() {
+            document.getElementById('messages-page').innerHTML = `<div id="messages-container"></div>`;
+            listenForMessages();
+        }
+        let unsubscribeMessages;
+        function listenForMessages() {
+            const container = document.getElementById('messages-container');
+            if (unsubscribeMessages) unsubscribeMessages();
+            const q = query(collection(db, 'contacts'), orderBy('timestamp', 'desc'));
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                container.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const m = doc.data();
+                    container.innerHTML += `<div class="card" style="margin-bottom:15px;"><p><strong>From:</strong> ${m.name}(${m.email})</p><p>${m.message}</p><small>${m.timestamp ? new Date(m.timestamp.seconds*1000).toLocaleString():''}</small><button class="btn btn-danger" data-id="${doc.id}" style="float:right;">Delete</button></div>`;
+                });
+                document.querySelectorAll('#messages-container .btn-danger').forEach(btn => btn.onclick = e => { if(confirm('Are you sure?')) deleteDoc(doc(db, 'contacts', e.target.dataset.id)) });
+            });
+        }
+
+        // --- Users ---
+        function loadUsersPage() {
+            document.getElementById('users-page').innerHTML = `<div class="table-container"><table id="users-table"><thead><tr><th>Email</th><th>User UID</th><th>Registered On</th></tr></thead><tbody></tbody></table></div>`;
+            loadUsers();
+        }
+        async function loadUsers() {
+            const tableBody = document.querySelector('#users-table tbody');
+            const snapshot = await getDocs(query(collection(db, "users"), orderBy("createdAt", "desc")));
+            tableBody.innerHTML = '';
+            snapshot.forEach((doc) => {
+                const u = doc.data();
+                tableBody.innerHTML += `<tr><td>${u.email}</td><td>${u.uid}</td><td>${u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString() : ''}</td></tr>`;
+            });
+        }
+        
+        // --- Analytics ---
+        function loadAnalyticsPage() {
+            document.getElementById('analytics-page').innerHTML = `<div class="card"><canvas id="salesChart"></canvas></div>`;
+            loadAnalytics();
+        }
+        let salesChart;
+        async function loadAnalytics() {
+            const snapshot = await getDocs(query(collection(db, 'orders'), where('status', '==', 'Fulfilled')));
+            const salesData = {};
+            snapshot.forEach(doc => {
+                const o = doc.data();
+                if(o.createdAt) { const d = new Date(o.createdAt.seconds * 1000).toLocaleDateString(); salesData[d] = (salesData[d] || 0) + o.totalAmount; }
+            });
+            const labels = Object.keys(salesData).sort((a,b) => new Date(a) - new Date(b));
+            const data = labels.map(label => salesData[label]);
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            if (salesChart) salesChart.destroy();
+            salesChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [{ label: 'Daily Revenue', data, borderColor: '#4f46e5', fill: true }] } });
+        }
+    </script>
+</body>
+</html>
+
